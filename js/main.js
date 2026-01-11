@@ -12,8 +12,8 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
 
 var version = "1.13.2";
 var scriptName = "LA Enhancer (1.13.2)";
-var scriptURL = "https://ntoombs19.github.io/LA-Enhancer/";
-var updateNotesURL = "https://ntoombs19.github.io/LA-Enhancer/";
+var scriptURL = "https://yasinenes92.github.io/yaver-LA/";
+var updateNotesURL = "https://yasinenes92.github.io/yaver-LA/";
 var working = true;
 var resourcesLoaded = false;
 var scriptLoaded = false;
@@ -34,6 +34,67 @@ if (window.top.game_data.player.sitter != "0") {
     sitter = "t=" + window.top.game_data.player.id + "&";
 }
 var link = ["https://" + window.location.host + "/game.php?" + sitter + "village=", "&screen=am_farm"];
+// ======== YAVER v2: MULTI-VILLAGE ROUTER HELPERS ========
+
+// parse first coord like 431|379 from a row text
+function mv_parseCoordFromRow($row) {
+    var t = $row.text();
+    var m = t.match(/(\d{1,3})\|(\d{1,3})/);
+    if (!m) return null;
+    return { x: parseInt(m[1], 10), y: parseInt(m[2], 10) };
+}
+
+function mv_dist(ax, ay, bx, by) {
+    var dx = ax - bx;
+    var dy = ay - by;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+// get all your village coords from village switch dropdown
+function mv_getAllVillages() {
+    var out = [];
+    try {
+        var sel = window.top.document.querySelector('#village_switch');
+        if (sel) {
+            var opts = sel.querySelectorAll('option');
+            opts.forEach(function (o) {
+                var id = String(o.value || '').trim();
+                var m = String(o.textContent || '').match(/(\d{1,3})\|(\d{1,3})/);
+                if (!id || !m) return;
+                out.push({ id: id, x: parseInt(m[1], 10), y: parseInt(m[2], 10) });
+            });
+        }
+    } catch (e) {}
+
+    // fallback: current village only
+    if (!out.length && window.top.game_data && window.top.game_data.village && window.top.game_data.village.coord) {
+        var m2 = String(window.top.game_data.village.coord).match(/(\d{1,3})\|(\d{1,3})/);
+        if (m2) {
+            out.push({ id: String(window.top.game_data.village.id), x: parseInt(m2[1], 10), y: parseInt(m2[2], 10) });
+        }
+    }
+    return out;
+}
+
+// return village ids sorted by nearest to targetCoord
+function mv_candidateSources(targetCoord) {
+    var vils = mv_getAllVillages();
+    var arr = vils.map(function (v) {
+        return { id: v.id, d: mv_dist(v.x, v.y, targetCoord.x, targetCoord.y) };
+    });
+    arr.sort(function (a, b) { return a.d - b.d; });
+    return arr.map(function (x) { return x.id; });
+}
+
+// ensure request URL uses the chosen source village in the URL too
+function mv_sendLinkForVillage(sourceId) {
+    var l = window.top.Accountmanager.send_units_link;
+    if (!l) return null;
+    // replace village=XXXX if present
+    var replaced = l.replace(/([?&]village=)\d+/, '$1' + sourceId);
+    // if there was no village=, just return original
+    return replaced;
+}
 
 
 var userset;
@@ -308,34 +369,81 @@ function customSendUnits(link, target_village, template_id, button) {
     if (!checkIfNextVillage()) {
         button.closest("tr").hide();
         link = window.top.$(link);
-        if (link.hasClass('farm_icon_disabled'))return false;
-        var data = {target: target_village, template_id: template_id, source: window.top.game_data.village.id};
-        window.top.$.post(window.top.Accountmanager.send_units_link, data, function (data) {
-            if (data.error) {
-                if (userset[s.next_village_units] && data.error === "Not enough units available") {
-                    if (cansend && filtersApplied)
-                        getNewVillage("n");
-                    return false;
-                } else {
-                    window.top.UI.ErrorMessage(data.error);
-                    button.closest("tr").show();
+        if (link.hasClass('farm_icon_disabled')) return false;
+
+        var $row = button.closest("tr");
+        var coord = mv_parseCoordFromRow($row);
+        var currentVillageId = String(window.top.game_data.village.id);
+
+        // build candidate sources (nearest first)
+        var candidates = [];
+        if (coord) {
+            candidates = mv_candidateSources(coord);
+        }
+        if (!candidates.length) {
+            candidates = [currentVillageId];
+        }
+
+        // try nearest villages until success (fix "wrong village" problem)
+        var tryIndex = 0;
+
+        function tryNext() {
+            if (tryIndex >= candidates.length) {
+                window.top.UI.ErrorMessage("No village had enough units for this template.", 2000);
+                $row.show();
+                return;
+            }
+
+            var sourceId = String(candidates[tryIndex++]);
+            var sendLink = mv_sendLinkForVillage(sourceId) || window.top.Accountmanager.send_units_link;
+
+            var data = {
+                target: target_village,
+                template_id: template_id,
+                source: sourceId
+            };
+
+            window.top.$.post(sendLink, data, function (resp) {
+                if (resp && resp.error) {
+                    // if not enough units, try the next nearest source
+                    if (resp.error === "Not enough units available") {
+                        tryNext();
+                        return;
+                    }
+
+                    window.top.UI.ErrorMessage(resp.error);
+                    $row.show();
+                    return;
                 }
-            } else {
+
+                // success
                 setLocalStorageRow(target_village);
+
+                // show a short success message (keep original behavior)
                 if (typeof window.top.$(button).prop('tooltipText') != 'undefined') {
                     var buttext = window.top.$(button).prop('tooltipText');
+                    var sep1 = buttext.split(/<br\s*?\/?>/ig);
+                    sep1.splice(sep1.length - 2, 1);
+                    window.top.UI.SuccessMessage(sep1.join(" "), 100);
+                } else {
+                    window.top.UI.SuccessMessage("Sent ✅", 100);
                 }
-                var yolo = window.top.$('<div></div>').append(window.top.$(buttext));
-                var bolo = window.top.$(yolo).find('img[src*="res.png"]').eq(0).attr('src');
-                var sep1 = buttext.split(/<br\s*?\/?>/ig);
-                sep1.splice(sep1.length - 2, 1);
-                window.top.UI.SuccessMessage(sep1.join(" "), 100);
-                window.top.Accountmanager.farm.updateOwnUnitsAvailable(data.current_units);
-            }
-        }, 'json');
-        return false
+
+                // IMPORTANT:
+                // only update on-screen available units if we sent from the currently selected village.
+                // if we sent from another village, updating the UI would show wrong numbers.
+                if (String(sourceId) === currentVillageId) {
+                    window.top.Accountmanager.farm.updateOwnUnitsAvailable(resp.current_units);
+                }
+
+            }, 'json');
+        }
+
+        tryNext();
+        return false;
     }
 }
+
 function customSendUnitsFromReport(link, target_village, report_id, button) {
     if (!checkIfNextVillage()) {
         button.closest("tr").hide();
