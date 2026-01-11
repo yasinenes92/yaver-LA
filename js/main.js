@@ -1,4 +1,4 @@
-var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+﻿var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
 if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
 {
   let window = _____WB$wombat$assign$function_____("window");
@@ -11,6 +11,7 @@ if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; re
   let opener = _____WB$wombat$assign$function_____("opener");
 
 var version = "1.13.2";
+window.__YAVER_LA_PATCH__ = "v2-check-001";
 var scriptName = "LA Enhancer (1.13.2)";
 var scriptURL = "https://yasinenes92.github.io/yaver-LA/";
 var updateNotesURL = "https://yasinenes92.github.io/yaver-LA/";
