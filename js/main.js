@@ -1,4 +1,5 @@
-﻿var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+﻿(function() {
+var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
 if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
 {
   let window = _____WB$wombat$assign$function_____("window");
@@ -1600,4 +1601,5 @@ function uglyHider(linker) {
 
 
 }
+})();
 
