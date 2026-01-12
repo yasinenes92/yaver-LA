@@ -1,5 +1,4 @@
-﻿(function() {
-var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
+﻿var _____WB$wombat$assign$function_____ = function(name) {return (self._wb_wombat && self._wb_wombat.local_init && self._wb_wombat.local_init(name)) || self[name]; };
 if (!self.__WB_pmw) { self.__WB_pmw = function(obj) { this.__WB_source = obj; return this; } }
 {
   let window = _____WB$wombat$assign$function_____("window");
@@ -1185,19 +1184,7 @@ function importProfile() {
         loadProfile(profileName);
     }
 }
-
-// ===== YAVER FIX: export functions for inline onclick handlers =====
-try {
-  window.applySettings = applySettings; window.top.applySettings = applySettings;
-  window.resetTable = resetTable; window.top.resetTable = resetTable;
-  window.changeProfile = changeProfile; window.top.changeProfile = changeProfile;
-  window.loadLanguage = loadLanguage; window.top.loadLanguage = loadLanguage;
-  window.uglyHider = uglyHider; window.top.uglyHider = uglyHider;
-  window.setKeyEditMode = setKeyEditMode; window.top.setKeyEditMode = setKeyEditMode;
-  window.__YAVER_EXPORT_OK__ = true;
-} catch (e) {}
-
-// window.top.$(document).off();  // disabled by Yaver (can break TW core)
+window.top.$(document).off();
 function hotkeysOnOff() {
     window.top.$('#settingsBody tr:lt(9) input,#settingsBody tr:lt(9) select').focusin(function () {
         window.onkeydown = function () {
@@ -1601,5 +1588,4 @@ function uglyHider(linker) {
 
 
 }
-})();
 
