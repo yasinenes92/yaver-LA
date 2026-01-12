@@ -1184,7 +1184,19 @@ function importProfile() {
         loadProfile(profileName);
     }
 }
-window.top.$(document).off();
+
+// ===== YAVER FIX: export functions for inline onclick handlers =====
+try {
+  window.applySettings = applySettings; window.top.applySettings = applySettings;
+  window.resetTable = resetTable; window.top.resetTable = resetTable;
+  window.changeProfile = changeProfile; window.top.changeProfile = changeProfile;
+  window.loadLanguage = loadLanguage; window.top.loadLanguage = loadLanguage;
+  window.uglyHider = uglyHider; window.top.uglyHider = uglyHider;
+  window.setKeyEditMode = setKeyEditMode; window.top.setKeyEditMode = setKeyEditMode;
+  window.__YAVER_EXPORT_OK__ = true;
+} catch (e) {}
+
+// window.top.$(document).off();  // disabled by Yaver (can break TW core)
 function hotkeysOnOff() {
     window.top.$('#settingsBody tr:lt(9) input,#settingsBody tr:lt(9) select').focusin(function () {
         window.onkeydown = function () {
