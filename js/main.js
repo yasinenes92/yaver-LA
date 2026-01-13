@@ -1847,3 +1847,133 @@ window.__YAVER_UPROXY__ = "v2-uproxy-001";
   window.__YAVER_EXPORT_OK__ = true;
 })();
  // ===== END YAVER OUTSIDE PATCH =====
+
+// ===== YAVER HOLD MODE (A/B/C keydown loop, keyup stop) =====
+window.__YAVER_HOLD__ = "v2-hold-001";
+
+// tweak if you want
+window.__YAVER_HOLD_MS__ = window.__YAVER_HOLD_MS__ || 220;
+
+(function () {
+  function get$() {
+    try {
+      if (window.top && window.top.jQuery) return window.top.jQuery;
+      if (window.top && window.top.$ && window.top.$.fn) return window.top.$;
+    } catch (e) {}
+    if (window.jQuery) return window.jQuery;
+    if (window.$ && window.$.fn) return window.$;
+    return null;
+  }
+
+  function isTypingTarget(el) {
+    if (!el) return false;
+    var t = (el.tagName || "").toLowerCase();
+    return t === "input" || t === "textarea" || t === "select" || el.isContentEditable;
+  }
+
+  function onFarmPage() {
+    try {
+      if (window.game_data && window.game_data.screen === "am_farm") return true;
+      if (window.top && window.top.game_data && window.top.game_data.screen === "am_farm") return true;
+    } catch (e) {}
+    return false;
+  }
+
+  // indexes used by LA Enhancer itself
+  var BTN_IDX = { a: 9, b: 10, c: 11 };
+
+  var timers = Object.create(null);
+  var lastTick = Object.create(null);
+
+  function stop(key) {
+    if (timers[key]) {
+      clearInterval(timers[key]);
+      timers[key] = null;
+    }
+  }
+
+  function clickOne(key) {
+    var $ = get$();
+    if (!$) return;
+
+    // safety: if bot protection shows up, stop
+    try {
+      if ($('*:contains("Bot Protection")').length) {
+        stop(key);
+        return;
+      }
+    } catch (e) {}
+
+    var $row = $("#plunder_list tr:visible").eq(1);
+    if (!$row.length) {
+      stop(key);
+      return;
+    }
+
+    var idx = BTN_IDX[key];
+    var $btn = $row.children("td").eq(idx).find("a").first();
+    if (!$btn.length) {
+      stop(key);
+      return;
+    }
+
+    // if disabled, just hide row and continue to next row
+    if ($btn.hasClass("farm_icon_disabled") || typeof $btn.html() === "undefined") {
+      $row.hide();
+      return;
+    }
+
+    $btn.trigger("click");
+  }
+
+  function start(key) {
+    if (timers[key]) return;
+
+    // throttle: don’t spam too hard
+    var ms = Number(window.__YAVER_HOLD_MS__ || 220);
+    if (!ms or ms < 120) ms = 120;
+
+    clickOne(key);
+    timers[key] = setInterval(function () {
+      // extra throttle guard (some browsers fire weirdly)
+      var now = Date.now();
+      if (lastTick[key] && (now - lastTick[key]) < (ms - 20)) return;
+      lastTick[key] = now;
+      clickOne(key);
+    }, ms);
+  }
+
+  // capture=true so we can block the old handler
+  document.addEventListener("keydown", function (ev) {
+    try {
+      if (!onFarmPage()) return;
+      if (isTypingTarget(ev.target)) return;
+
+      var k = (ev.key || "").toLowerCase();
+      if (k !== "a" && k !== "b" && k !== "c") return;
+
+      // ignore auto-repeat storms; our interval handles repeating
+      if (ev.repeat) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        return;
+      }
+
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      start(k);
+    } catch (e) {}
+  }, true);
+
+  document.addEventListener("keyup", function (ev) {
+    try {
+      var k = (ev.key || "").toLowerCase();
+      if (k !== "a" && k !== "b" && k !== "c") return;
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      stop(k);
+    } catch (e) {}
+  }, true);
+
+  console.log("[YaverLA] hold mode ready ✅", window.__YAVER_HOLD__);
+})();
