@@ -895,25 +895,31 @@ function wallSettings(cell, profileArray) {
     }
 }
 function distanceSettings(cell, profileArray) {
+    // [Yaver] v2-distfix-001 (use text() not html() + handle comma)
+
     if (profileArray[s.enable_distances]) {
-        var distanceLvl = cell.html();
+        var distanceLvl = cell.text();
+        distanceLvl = String(distanceLvl || "").trim();
+        var distanceNum = parseFloat(distanceLvl.replace(",", "."));
+        var threshold = parseFloat(String(profileArray[s.distance_value] || "").replace(",", "."));
+
         switch (window.top.$.trim(profileArray[s.distance_operator])) {
             case"greater_than":
-                if (parseFloat(distanceLvl) > parseFloat(profileArray[s.distance_value])) {
+                if (distanceNum > threshold) {
                     reason.push("Village too far");
                     hideRow = true;
                     return;
                 }
                 break;
             case"less_than":
-                if (parseFloat(distanceLvl) < parseFloat(profileArray[s.distance_value])) {
+                if (distanceNum < threshold) {
                     reason.push("Village too close");
                     hideRow = true;
                     return;
                 }
                 break;
             case"equal_to":
-                if (parseFloat(distanceLvl) == parseFloat(profileArray[s.distance_value])) {
+                if (distanceNum == threshold) {
                     reason.push("Village exact distance");
                     hideRow = true;
                     return;
