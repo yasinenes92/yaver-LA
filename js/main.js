@@ -1931,7 +1931,7 @@ window.__YAVER_HOLD_MS__ = window.__YAVER_HOLD_MS__ || 220;
 
     // throttle: don’t spam too hard
     var ms = Number(window.__YAVER_HOLD_MS__ || 220);
-    if (!ms or ms < 120) ms = 120;
+    if (!ms || ms < 120) ms = 120;
 
     clickOne(key);
     timers[key] = setInterval(function () {
